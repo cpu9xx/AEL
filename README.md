@@ -1,5 +1,5 @@
 # Adaptive-Ensemble-Learning
 An Ensemble View on Denoising Recommendation.
 
-#Overview
+# Overview
 AEL contains three modules: corrupt module, adaptive ensemble module, and denoising module. In the denoising module, we first construct three sub-AEs as components based on the Collaborative Denoising Autoencoder~\cite{CDAE}. Then, we vary the denoising capacities of three parent-AEs and significantly reduce their model size using a novel method. This method first creates three sub-AEs as components, then stacks them to construct heterogeneous parent-AEs. We also introduce a corrupt module to improve robustness by partially corrupting initial input, preventing sub-AEs from simply learning the identity function. The adaptive ensemble module achieves the denoising capacity adaptability. It contains an improved sparse gating network as a brain, which can analyze the historical performance of parent-AEs, and automatically select the two most suitable parent-AEs to synthesize appropriate denoising capacity for current input data.
