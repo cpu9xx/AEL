@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
-from layers import AE, SAE, SAE_pro
+from layers import AE, parentAEs, parentAEs_pro
 import config as cfg
 from MoE import SparseMOE, myMoE
-from data import read_ml1m, get_matrix, read_ml100k, clean_read_ml100k, read_BX, read_mod, read_adressa, get_sparse_matrix, read_baby, get_baby_matrix
+from data import get_matrix, read_ml100k, read_mod, read_adressa
 from torch.utils.data import Dataset, DataLoader
 from matplotlib import pyplot as plt
 import numpy as np
@@ -18,10 +18,7 @@ class Logger(object):
     def write(self, message):
         self.terminal.write(message)
         if not self.start_log:
-            if '倒数第 1 天' in message:#'Inited strategy' in message:
-                self.start_log = True
-            elif 'time' in message or 'Warning' in message:
-                self.log.write(message)
+            pass
         else:
             self.log.write(message)
     def flush(self):
@@ -47,7 +44,6 @@ def train(model, epoches, dataloader, lr, train_set, test_set_dict, top_k):
         model.train()
         mean_loss1, mean_bias, count = 0, 0, 0
         for purchase_vec, uid in dataloader:
-            # purchase_vec: [batch_size, nb_item]
             purchase_vec = purchase_vec.to(cfg.device)  # Move data to device
             uid = uid.to(cfg.device)
 
@@ -59,7 +55,6 @@ def train(model, epoches, dataloader, lr, train_set, test_set_dict, top_k):
             mean_bias += bias.detach()
             count += 1
             loss = loss1 + bias
-            # loss = bias
             opt.zero_grad()
             loss.backward()
             opt.step()
@@ -112,17 +107,14 @@ def test(model, test_set_dict, train_set, top_k_ls, select_E=None):
             hit = 0
             tmp_list = [(idx, value) for idx, value in enumerate(out[i])]
             tmp_list = sorted(tmp_list, key=lambda x:x[1], reverse=True)[:top_k] # 对value 排序
-            # print(f"tmp_list: {tmp_list}")
             for k, v in tmp_list:
                 if k in test_set_dict[u]:
-                    # print(f"test_set_dict[u]: {test_set_dict[u]}")
                     hit += 1
             recalls += hit/len(test_set_dict[u])
             precisions += hit/top_k
             hits += hit
             total_purchase_nb += len(test_set_dict[u])
 
-            # 计算 NDCG
             dcg = 0
             idcg = 0
             for j in range(min(top_k, len(test_set_dict[u]))):
@@ -131,7 +123,6 @@ def test(model, test_set_dict, train_set, top_k_ls, select_E=None):
                 idcg += 1 / np.log2(j + 2)
             ndcgs += dcg / idcg
 
-            # 计算 MRR
             mrr = 0
             for j in range(len(tmp_list)):
                 if tmp_list[j][0] in test_set_dict[u]:
@@ -161,10 +152,7 @@ if __name__ == '__main__':
     nb_item = cfg.ml_100k.nb_item
     nb_hidden_ls = cfg.ml_100k.nb_hidden_ls
     train_set_dict, test_set_dict = read_ml100k('dataset/ml-100k/u1.base', 'dataset/ml-100k/u1.test', sep='\t', header=None)
-    #train_set_dict, test_set_dict = clean_read_ml100k('dataset/ml-100k/u1.base', 'dataset/ml-100k/u1.test', sep='\t', header=None)
     train_set, test_set = get_matrix(train_set_dict, test_set_dict, nb_user=nb_user, nb_item=nb_item)
-
-
 
     # nb_user = cfg.modcloth.nb_user
     # nb_item = cfg.modcloth.nb_item
@@ -174,8 +162,6 @@ if __name__ == '__main__':
     # train_set, test_set = get_matrix(train_set_dict, test_set_dict, nb_user=nb_user, nb_item=nb_item)
 
 
-
-
     # nb_user = cfg.adressa.nb_user
     # nb_item = cfg.adressa.nb_item
     # nb_hidden = cfg.adressa.nb_hidden
@@ -183,9 +169,9 @@ if __name__ == '__main__':
     # train_set_dict, test_set_dict = read_adressa('dataset/adressa/adressa.train.rating', 'dataset/adressa/adressa.test.negative', sep='\t', header=None) 
     # train_set, test_set = get_matrix(train_set_dict, test_set_dict, nb_user=nb_user, nb_item=nb_item)
 
-    model = SAE_pro(nb_item, nb_user, nb_hidden_ls).to(cfg.device)
-    model.load_state_dict(torch.load(cfg.moe.model))
 
+    model = parentAEs_pro(nb_item, nb_user, nb_hidden_ls).to(cfg.device)
+    model.load_state_dict(torch.load(cfg.moe.model))
 
     dataset = M_Dataset(train_set)
     dataloader = DataLoader(dataset=dataset, batch_size=cfg.batch_size, shuffle=True, pin_memory=True)
