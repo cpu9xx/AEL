@@ -17,5 +17,5 @@ The model is implemented using PyTorch. The versions of packages used are shown 
 Very thanks to Dr.Wenjie Wang with his code [DenoisingRec](https://github.com/WenjieWWJ/DenoisingRec).
 
 # Run
-Step 1. Train parent-AEs: python train.py# or contact us to get pre-trained models weipuchenn@gmail.com
-Step 2. Train sparse gating network: python moe_train.py
+- Step 1. Train parent-AEs, or contact us to get pre-trained models weipuchenn@gmail.com: python train.py
+- Step 2. Train sparse gating network: python moe_train.py
