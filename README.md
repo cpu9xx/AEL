@@ -6,11 +6,16 @@ AEL contains three modules: corrupt module, adaptive ensemble module, and denois
 
 # Requirements
 The model is implemented using PyTorch. The versions of packages used are shown below.
-·torch==1.13.0
-·CUDA==11.6
-·numpy==1.24.4
-·pandas==1.4.2
-·matplotlib==3.7.1
-·easydict==1.13
+- torch==1.13.0
+- CUDA==11.6
+- numpy==1.24.4
+- pandas==1.4.2
+- matplotlib==3.7.1
+- easydict==1.13
 
+# Special thanks 
+Very thanks to Dr.Wenjie Wang with his code [DenoisingRec](https://github.com/WenjieWWJ/DenoisingRec).
 
+# Run
+Step 1. Train parent-AEs: python train.py# or contact us to get pre-trained models weipuchenn@gmail.com
+Step 2. Train sparse gating network: python moe_train.py
