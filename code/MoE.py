@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.distributions.normal import Normal
 class SparseMOE(nn.Module):
-    # expert_list: [大自编码器，中自编码器，小自编码器]
+    # expert_list: [Large，Medium，Small]
     def __init__(self, expert_list:nn.ModuleList, select_experts:int):
         super(SparseMOE, self).__init__()
         self.num_expert = len(expert_list)
@@ -58,9 +58,7 @@ class SparseMOE(nn.Module):
         clean_logits = x @ self.w_gate
         if self.noisy_gating and train:
             raw_noise_stddev = x @ self.w_noise
-            # print(f"{raw_noise_stddev.shape} # {self.w_noise.shape}")
             noise_stddev = ((self.softplus(raw_noise_stddev) + noise_epsilon))
-            # print(f"{clean_logits.shape} # {noise_stddev.shape}")
             noisy_logits = clean_logits + (torch.randn_like(clean_logits) * noise_stddev)
             logits = noisy_logits
         else:
@@ -70,7 +68,6 @@ class SparseMOE(nn.Module):
         top_k_logits = top_logits[:, :self.k]
         top_k_indices = top_indices[:, :self.k]
         top_k_gates = self.softmax(top_k_logits)
-        # print(f"{self.training}  {top_k_gates[0:3]}")
         
         zeros = torch.zeros_like(logits, requires_grad=True)
         gates = zeros.scatter(1, top_k_indices, top_k_gates)
@@ -82,30 +79,16 @@ class SparseMOE(nn.Module):
             load = self.gates_to_load(gates)
 
         if not self.training:
-            # print(logits.shape)
-            # print(self.k + 1)
-            # print(top_logits.shape)
-            # print(top_k_logits.shape)
-            # print(top_k_indices[0:3])
             print(f"{self.training}  {top_k_gates[0:3]}")
-            # print(f"{gates}")
             print(f"{load}")
         return gates, load
 
     def train(self, mode=True):
-        """
-        Overwrite the train function to customize behavior during training.
-        """
-        # Your custom logic here
         super(SparseMOE, self).train(mode)
         self.training = mode
 
     def eval(self):
-        """
-        Overwrite the eval function to customize behavior during evaluation.
-        """
         print(f"set eval()")
-        # Your custom logic here
         super(SparseMOE, self).eval()
         self.training = False
 
@@ -146,19 +129,15 @@ class myMoE(SparseMOE):
         self.id2item = nn.Embedding(nb_user, nb_item)
 
     def forward(self, uid, purchase_vec, loss_coef=1e-2, mode=None):
-        # x = self.id2item(uid).squeeze(dim=1) + purchase_vec
         x = purchase_vec
         gates, load = self.noisy_top_k_gating(x, self.training)
-        
         importance = gates.sum(0)
-        # print(gates)
-        # print(load)
         loss = self.cv_squared(importance) + self.cv_squared(load)
         loss *= loss_coef
+        
         outputs = torch.stack([self.expert_selector(uid, purchase_vec, stage=select) for select in range(self.num_expert)], dim=2).detach()
         gates = gates.unsqueeze(1).expand_as(outputs)
         y = torch.sum(outputs * gates, dim=2)
-        # print(y.shape)
         return y, loss
     
     def train(self, mode=True):
